@@ -44,9 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# ── Firebase (credenciais sensíveis — NUNCA versionar) ──────────────────────
-lib/firebase_options.dart
-android/app/google-services.json
+# ── Firebase (credenciais sensíveis — apenas iOS não versionado) ────────────
 ios/Runner/GoogleService-Info.plist
 
 # ── Code generation (regenerar com: dart run build_runner build) ─────────────
