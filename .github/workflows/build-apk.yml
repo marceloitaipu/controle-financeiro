@@ -28,13 +28,15 @@ jobs:
       - name: Instalar dependências
         run: flutter pub get
 
+      - name: Criar google-services.json
+        env:
+          GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: echo "$GOOGLE_SERVICES" > android/app/google-services.json
 
-      - name: Verificar arquivos criados
-        run: |
-          echo "=== google-services.json ==="
-          head -3 android/app/google-services.json
-          echo "=== firebase_options.dart ==="
-          head -3 lib/firebase_options.dart
+      - name: Criar firebase_options.dart
+        env:
+          FIREBASE_OPTIONS: ${{ secrets.FIREBASE_OPTIONS_DART }}
+        run: echo "$FIREBASE_OPTIONS" > lib/firebase_options.dart
 
       - name: Build APK (debug)
         run: flutter build apk --debug
