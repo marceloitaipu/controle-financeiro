@@ -1,0 +1,161 @@
+// firestore.rules
+//
+// Regras de segurança do Firestore para o app Controle Financeiro.
+// Estrutura de dados:
+//   users/{userId}                                  — perfil do usuário
+//   users/{userId}/accounts/{accountId}             — contas bancárias
+//   users/{userId}/categories/{categoryId}          — categorias
+//   users/{userId}/transactions/{transactionId}     — transações
+//   users/{userId}/budgets/{budgetId}               — orçamentos
+//   users/{userId}/goals/{goalId}                   — metas
+//   users/{userId}/credit_cards/{cardId}            — cartões de crédito
+//   users/{userId}/credit_cards/{cardId}/invoices/{invoiceId} — faturas
+//   users/{userId}/settings/{settingId}             — preferências do usuário
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Funções auxiliares ─────────────────────────────────────────────────
+
+    /// Retorna true se o usuário está autenticado.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /// Retorna true se o usuário autenticado é o dono do recurso.
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    /// Retorna true se o request contém apenas os campos especificados
+    /// (não mais, não menos — útil para writes restritos).
+    function hasOnly(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    /// Retorna true se o campo existe e não é nulo no documento de escrita.
+    function hasField(field) {
+      return field in request.resource.data && request.resource.data[field] != null;
+    }
+
+    /// Tamanho máximo de string permitido (previne abuso de storage).
+    function strLen(field, max) {
+      return request.resource.data[field] is string
+          && request.resource.data[field].size() <= max;
+    }
+
+    // ── Usuários ───────────────────────────────────────────────────────────
+    // Cada usuário pode ler e escrever apenas seu próprio documento.
+    // Outros usuários (incluindo admins) não têm acesso direto via regras.
+    match /users/{userId} {
+      allow read, delete: if isOwner(userId);
+      allow create: if isOwner(userId)
+          && hasField('email')
+          && hasField('createdAt')
+          && (!hasField('displayName') || strLen('displayName', 128))
+          && strLen('email', 256);
+      allow update: if isOwner(userId)
+          && (!hasField('displayName') || strLen('displayName', 128));
+
+      // ── Contas ────────────────────────────────────────────────────────
+      match /accounts/{accountId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+            && hasField('name')
+            && hasField('type')
+            && hasField('balanceCents')
+            && strLen('name', 128);
+        allow update: if isOwner(userId)
+            && strLen('name', 128);
+      }
+
+      // ── Categorias ────────────────────────────────────────────────────
+      match /categories/{categoryId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+            && hasField('name')
+            && hasField('type')
+            && strLen('name', 64);
+        allow update: if isOwner(userId)
+            && strLen('name', 64);
+      }
+
+      // ── Transações ────────────────────────────────────────────────────
+      match /transactions/{transactionId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+            && hasField('amountCents')
+            && hasField('type')
+            && hasField('date')
+            && hasField('accountId')
+            && request.resource.data.amountCents is int
+            && request.resource.data.amountCents > 0
+            && request.resource.data.amountCents <= 100000000000; // R$ 1 bilhão
+        allow update: if isOwner(userId)
+            && request.resource.data.amountCents is int
+            && request.resource.data.amountCents > 0
+            && request.resource.data.amountCents <= 100000000000;
+      }
+
+      // ── Orçamentos ────────────────────────────────────────────────────
+      match /budgets/{budgetId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+            && hasField('amountCents')
+            && hasField('categoryId')
+            && hasField('month')
+            && request.resource.data.amountCents is int
+            && request.resource.data.amountCents > 0;
+        allow update: if isOwner(userId)
+            && request.resource.data.amountCents is int
+            && request.resource.data.amountCents > 0;
+      }
+
+      // ── Metas ────────────────────────────────────────────────────────
+      match /goals/{goalId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+            && hasField('name')
+            && hasField('targetAmountCents')
+            && strLen('name', 128)
+            && request.resource.data.targetAmountCents is int
+            && request.resource.data.targetAmountCents > 0;
+        allow update: if isOwner(userId)
+            && strLen('name', 128);
+      }
+
+      // ── Cartões de crédito ────────────────────────────────────────────
+      match /credit_cards/{cardId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+            && hasField('name')
+            && hasField('limitCents')
+            && strLen('name', 128)
+            && request.resource.data.limitCents is int
+            && request.resource.data.limitCents > 0;
+        allow update: if isOwner(userId)
+            && strLen('name', 128);
+
+        // Faturas dos cartões
+        match /invoices/{invoiceId} {
+          allow read, delete: if isOwner(userId);
+          allow create, update: if isOwner(userId)
+              && hasField('month')
+              && hasField('totalCents')
+              && request.resource.data.totalCents is int;
+        }
+      }
+
+      // ── Configurações do usuário ─────────────────────────────────────
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ── Bloqueia qualquer outro acesso ────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

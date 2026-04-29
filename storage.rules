@@ -1,0 +1,80 @@
+// storage.rules
+//
+// Regras de segurança do Firebase Storage para o app Controle Financeiro.
+// Estrutura de caminhos:
+//   users/{userId}/transactions/{transactionId}/{filename}  — anexos de transações
+//   users/{userId}/avatar.{ext}                            — avatar do usuário
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Funções auxiliares ─────────────────────────────────────────────────
+
+    /// Retorna true se o usuário está autenticado.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /// Retorna true se o usuário autenticado é o dono do caminho.
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    /// Tipos de conteúdo permitidos para anexos de transações.
+    function isAllowedAttachment() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp|gif)')
+          || request.resource.contentType == 'application/pdf';
+    }
+
+    /// Tipos de conteúdo permitidos para avatar.
+    function isAllowedAvatar() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    /// Limite de 10 MB para anexos.
+    function isWithinAttachmentSizeLimit() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    /// Limite de 2 MB para avatar.
+    function isWithinAvatarSizeLimit() {
+      return request.resource.size <= 2 * 1024 * 1024;
+    }
+
+    // ── Anexos de transações ──────────────────────────────────────────────
+    // Caminho: users/{userId}/transactions/{transactionId}/{filename}
+    match /users/{userId}/transactions/{transactionId}/{filename} {
+      // Leitura: apenas o dono
+      allow read: if isOwner(userId);
+
+      // Upload: apenas o dono, com restrição de tipo e tamanho
+      allow create: if isOwner(userId)
+          && isAllowedAttachment()
+          && isWithinAttachmentSizeLimit();
+
+      // Atualização não permitida — delete + re-upload
+      allow update: if false;
+
+      // Exclusão: apenas o dono
+      allow delete: if isOwner(userId);
+    }
+
+    // ── Avatar do usuário ─────────────────────────────────────────────────
+    // Caminho: users/{userId}/avatar.{ext}
+    // Nota: avatar.jpg, avatar.png, avatar.webp
+    match /users/{userId}/{avatarFile} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId)
+          && avatarFile.matches('avatar\\.(jpeg|jpg|png|webp)')
+          && isAllowedAvatar()
+          && isWithinAvatarSizeLimit();
+      allow delete: if isOwner(userId);
+    }
+
+    // ── Bloqueia qualquer outro acesso ────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
