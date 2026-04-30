@@ -52,6 +52,18 @@ class QuickActionsRow extends StatelessWidget {
             onTap: () => context.push(AppRoutes.accounts),
           ),
           _QuickAction(
+            icon: Icons.flag_outlined,
+            label: 'Metas',
+            color: const Color(0xFF2E7D32),
+            onTap: () => context.push(AppRoutes.goals),
+          ),
+          _QuickAction(
+            icon: Icons.pie_chart_outline_rounded,
+            label: 'Orçamentos',
+            color: const Color(0xFFE65100),
+            onTap: () => context.push(AppRoutes.budgets),
+          ),
+          _QuickAction(
             icon: Icons.bar_chart_rounded,
             label: 'Relatórios',
             color: const Color(0xFF00838F),

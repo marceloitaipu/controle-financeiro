@@ -88,9 +88,14 @@ class HomePage extends ConsumerWidget {
             label: 'Cartões',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Relatórios',
+            icon: Icon(Icons.flag_outlined),
+            selectedIcon: Icon(Icons.flag),
+            label: 'Metas',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.pie_chart_outline_rounded),
+            selectedIcon: Icon(Icons.pie_chart_rounded),
+            label: 'Orçamentos',
           ),
         ],
         onDestinationSelected: (index) {
@@ -100,7 +105,9 @@ class HomePage extends ConsumerWidget {
             case 2:
               context.push(AppRoutes.creditCards);
             case 3:
-              context.push(AppRoutes.reports);
+              context.push(AppRoutes.goals);
+            case 4:
+              context.push(AppRoutes.budgets);
           }
         },
       ),
