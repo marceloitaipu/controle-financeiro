@@ -1,5 +1,6 @@
 // lib/features/notifications/presentation/providers/notification_scheduler_provider.dart
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -18,6 +19,9 @@ part 'notification_scheduler_provider.g.dart';
 /// para garantir que o agendamento ocorra ao abrir o app.
 @Riverpod(keepAlive: true)
 Future<void> notificationScheduler(Ref ref) async {
+  // flutter_local_notifications não suporta web
+  if (kIsWeb) return;
+
   final prefs = ref.watch(notificationPreferencesNotifierProvider);
   final service = LocalNotificationService.instance;
 
