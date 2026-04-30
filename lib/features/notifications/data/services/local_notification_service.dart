@@ -46,7 +46,7 @@ final class LocalNotificationService {
     tz_data.initializeTimeZones();
     try {
       final localTz = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(localTz));
+      tz.setLocalLocation(tz.getLocation(localTz.identifier));
     } catch (e) {
       // Fallback para o fuso de Brasília
       tz.setLocalLocation(tz.getLocation('America/Sao_Paulo'));
