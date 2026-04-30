@@ -64,7 +64,7 @@ service cloud.firestore {
         allow create: if isOwner(userId)
             && hasField('name')
             && hasField('type')
-            && hasField('balanceCents')
+            && hasField('balance')
             && strLen('name', 128);
         allow update: if isOwner(userId)
             && strLen('name', 128);
@@ -85,31 +85,30 @@ service cloud.firestore {
       match /transactions/{transactionId} {
         allow read, delete: if isOwner(userId);
         allow create: if isOwner(userId)
-            && hasField('amountCents')
+            && hasField('amount')
             && hasField('type')
             && hasField('date')
             && hasField('accountId')
-            && request.resource.data.amountCents is int
-            && request.resource.data.amountCents > 0
-            && request.resource.data.amountCents <= 100000000000; // R$ 1 bilhão
+            && request.resource.data.amount is int
+            && request.resource.data.amount > 0
+            && request.resource.data.amount <= 100000000000; // R$ 1 bilhão
         allow update: if isOwner(userId)
-            && request.resource.data.amountCents is int
-            && request.resource.data.amountCents > 0
-            && request.resource.data.amountCents <= 100000000000;
+            && request.resource.data.amount is int
+            && request.resource.data.amount > 0
+            && request.resource.data.amount <= 100000000000;
       }
 
       // ── Orçamentos ────────────────────────────────────────────────────
       match /budgets/{budgetId} {
         allow read, delete: if isOwner(userId);
         allow create: if isOwner(userId)
-            && hasField('amountCents')
+            && hasField('amount')
             && hasField('categoryId')
-            && hasField('month')
-            && request.resource.data.amountCents is int
-            && request.resource.data.amountCents > 0;
+            && request.resource.data.amount is int
+            && request.resource.data.amount > 0;
         allow update: if isOwner(userId)
-            && request.resource.data.amountCents is int
-            && request.resource.data.amountCents > 0;
+            && request.resource.data.amount is int
+            && request.resource.data.amount > 0;
       }
 
       // ── Metas ────────────────────────────────────────────────────────
@@ -117,10 +116,10 @@ service cloud.firestore {
         allow read, delete: if isOwner(userId);
         allow create: if isOwner(userId)
             && hasField('name')
-            && hasField('targetAmountCents')
+            && hasField('targetAmount')
             && strLen('name', 128)
-            && request.resource.data.targetAmountCents is int
-            && request.resource.data.targetAmountCents > 0;
+            && request.resource.data.targetAmount is int
+            && request.resource.data.targetAmount > 0;
         allow update: if isOwner(userId)
             && strLen('name', 128);
       }
@@ -130,10 +129,10 @@ service cloud.firestore {
         allow read, delete: if isOwner(userId);
         allow create: if isOwner(userId)
             && hasField('name')
-            && hasField('limitCents')
+            && hasField('creditLimit')
             && strLen('name', 128)
-            && request.resource.data.limitCents is int
-            && request.resource.data.limitCents > 0;
+            && request.resource.data.creditLimit is int
+            && request.resource.data.creditLimit > 0;
         allow update: if isOwner(userId)
             && strLen('name', 128);
 
