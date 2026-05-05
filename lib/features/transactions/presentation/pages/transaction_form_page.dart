@@ -64,6 +64,8 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
   // ── Estado para compra no cartão de crédito ───────────────────────────────
   bool _useCreditCard = false;
   CreditCard? _selectedCreditCard;
+  // Cartão original ao editar uma transação de CC (resolve por ID no widget).
+  String? _initialCreditCardId;
   int _totalInstallments = 2;
   bool _isInstallment = false;
 
@@ -84,8 +86,6 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
       // Modo edição — pré-preenche os campos
       _type = tx.type;
       _date = tx.date;
-      _selectedAccountId = tx.accountId;
-      _selectedDestAccountId = tx.destinationAccountId;
       _selectedCategoryId = tx.categoryId;
       _status = tx.status;
       _recurrence = tx.recurrence;
@@ -94,6 +94,14 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
       // Converte centavos para reais no campo de valor
       final reais = tx.amount / 100;
       _amountController.text = reais.toStringAsFixed(2).replaceAll('.', ',');
+      if (tx.creditCardId != null) {
+        // Transação de cartão: accountId é '' — não pré-seleciona conta
+        _useCreditCard = true;
+        _initialCreditCardId = tx.creditCardId;
+      } else {
+        _selectedAccountId = tx.accountId;
+        _selectedDestAccountId = tx.destinationAccountId;
+      }
     } else {
       // Modo criação
       _type = _parseType(widget.transactionType);
@@ -224,8 +232,8 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
                 final picked = await showDatePicker(
                   context: context,
                   initialDate: _date,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2035),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
                 );
                 if (picked != null) setState(() => _date = picked);
               },
@@ -273,20 +281,23 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
               const SizedBox(height: AppSpacing.xl2),
             ],
 
-            // ── Cartão de crédito (só despesas em modo criação) ───────────────
-            if (_type == TransactionType.expense && !_isEditMode) ...[
+            // ── Cartão de crédito (despesas — toggle desabilitado em edição) ──
+            if (_type == TransactionType.expense &&
+                (!_isEditMode || _useCreditCard)) ...[
               const _SectionLabel('Forma de pagamento'),
               const SizedBox(height: AppSpacing.sm),
               _CreditCardToggle(
                 value: _useCreditCard,
-                onChanged: (v) => setState(() {
-                  _useCreditCard = v;
-                  if (!v) {
-                    _selectedCreditCard = null;
-                    _isInstallment = false;
-                    _totalInstallments = 2;
-                  }
-                }),
+                onChanged: _isEditMode
+                    ? null
+                    : (v) => setState(() {
+                          _useCreditCard = v;
+                          if (!v) {
+                            _selectedCreditCard = null;
+                            _isInstallment = false;
+                            _totalInstallments = 2;
+                          }
+                        }),
               ),
               if (_useCreditCard) ...[
                 const SizedBox(height: AppSpacing.xl2),
@@ -294,22 +305,26 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
                 const SizedBox(height: AppSpacing.sm),
                 _CreditCardSelector(
                   selectedCard: _selectedCreditCard,
-                  onChanged: (card) =>
-                      setState(() => _selectedCreditCard = card),
+                  initialCardId: _initialCreditCardId,
+                  onChanged: _isEditMode
+                      ? null
+                      : (card) => setState(() => _selectedCreditCard = card),
                 ),
-                const SizedBox(height: AppSpacing.xl2),
-                const _SectionLabel('Parcelamento'),
-                const SizedBox(height: AppSpacing.sm),
-                _InstallmentSection(
-                  isInstallment: _isInstallment,
-                  totalInstallments: _totalInstallments,
-                  onInstallmentChanged: (v) => setState(() {
-                    _isInstallment = v;
-                    if (!v) _totalInstallments = 2;
-                  }),
-                  onCountChanged: (c) =>
-                      setState(() => _totalInstallments = c),
-                ),
+                if (!_isEditMode) ...[
+                  const SizedBox(height: AppSpacing.xl2),
+                  const _SectionLabel('Parcelamento'),
+                  const SizedBox(height: AppSpacing.sm),
+                  _InstallmentSection(
+                    isInstallment: _isInstallment,
+                    totalInstallments: _totalInstallments,
+                    onInstallmentChanged: (v) => setState(() {
+                      _isInstallment = v;
+                      if (!v) _totalInstallments = 2;
+                    }),
+                    onCountChanged: (c) =>
+                        setState(() => _totalInstallments = c),
+                  ),
+                ],
               ],
               const SizedBox(height: AppSpacing.xl2),
             ],
@@ -368,8 +383,8 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
     if (!_formKey.currentState!.validate()) return;
 
     // Validação específica para cada modo
-    if (_useCreditCard && !_isEditMode) {
-      if (_selectedCreditCard == null) {
+    if (_useCreditCard) {
+      if (!_isEditMode && _selectedCreditCard == null) {
         _showSnack('Selecione um cartão.');
         return;
       }
@@ -449,7 +464,11 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
           ? null
           : _notesController.text.trim(),
       date: _date,
-      accountId: _selectedAccountId!,
+      // CC transactions use empty accountId; in edit mode keep original CC id.
+      accountId: _useCreditCard ? '' : _selectedAccountId!,
+      creditCardId: _useCreditCard
+          ? (_initialCreditCardId ?? tx?.creditCardId)
+          : null,
       destinationAccountId: _type == TransactionType.transfer
           ? _selectedDestAccountId
           : null,
@@ -936,7 +955,8 @@ class _RecurrenceDropdown extends StatelessWidget {
 class _CreditCardToggle extends StatelessWidget {
   const _CreditCardToggle({required this.value, required this.onChanged});
   final bool value;
-  final ValueChanged<bool> onChanged;
+  // null = desabilitado (modo edição)
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -968,20 +988,32 @@ class _CreditCardSelector extends ConsumerWidget {
   const _CreditCardSelector({
     required this.selectedCard,
     required this.onChanged,
+    this.initialCardId,
   });
 
   final CreditCard? selectedCard;
-  final ValueChanged<CreditCard?> onChanged;
+  // null = picker habilitado (criação); non-null callback = não-nulo é modo leitura
+  final ValueChanged<CreditCard?>? onChanged;
+  // ID do cartão original ao editar — resolvido a partir do stream.
+  final String? initialCardId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    // Resolve o cartão: usa selectedCard se disponível, senão busca pelo ID.
+    final cards = ref.watch(watchCreditCardsProvider).valueOrNull ?? [];
+    final resolved = selectedCard ??
+        (initialCardId != null
+            ? cards.where((c) => c.id == initialCardId).firstOrNull
+            : null);
+
     Color? cardColor;
-    if (selectedCard != null) {
+    if (resolved != null) {
       try {
         cardColor = Color(
           int.parse(
-            'FF${selectedCard!.colorHex.replaceFirst('#', '')}',
+            'FF${resolved.colorHex.replaceFirst('#', '')}',
             radix: 16,
           ),
         );
@@ -991,14 +1023,16 @@ class _CreditCardSelector extends ConsumerWidget {
     }
 
     return InkWell(
-      onTap: () async {
-        final card = await showCreditCardPicker(
-          context: context,
-          ref: ref,
-          selectedId: selectedCard?.id,
-        );
-        if (card != null) onChanged(card);
-      },
+      onTap: onChanged == null
+          ? null
+          : () async {
+              final card = await showCreditCardPicker(
+                context: context,
+                ref: ref,
+                selectedId: resolved?.id,
+              );
+              if (card != null) onChanged!(card);
+            },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -1029,18 +1063,20 @@ class _CreditCardSelector extends ConsumerWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
-                selectedCard != null
-                    ? '${selectedCard!.name}  •  •••• ${selectedCard!.lastFourDigits}'
+                resolved != null
+                    ? '${resolved.name}  •  •••• ${resolved.lastFourDigits}'
                     : 'Selecionar cartão...',
                 style: TextStyle(
-                  color: selectedCard != null
+                  color: resolved != null
                       ? colorScheme.onSurface
                       : colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
             Icon(
-              Icons.chevron_right,
+              onChanged != null
+                  ? Icons.chevron_right
+                  : Icons.lock_outline_rounded,
               size: 18,
               color: colorScheme.onSurfaceVariant,
             ),

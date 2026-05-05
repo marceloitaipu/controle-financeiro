@@ -90,13 +90,13 @@ final class BudgetRepositoryImpl
           .collection('transactions')
           .where('categoryId', isEqualTo: categoryId)
           .where('type', isEqualTo: 'expense')
-          .where('status', isEqualTo: 'completed')
           .where('date',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .get();
 
       final total = snap.docs
+          .where((d) => d.data()['status'] != 'cancelled')
           .map((d) => d.data()['amount'] as int? ?? 0)
           .fold(0, (s, a) => s + a);
       return Right(total);

@@ -154,7 +154,7 @@ class _BudgetFormSheetState extends ConsumerState<_BudgetFormSheet> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _startDate,
-      firstDate: DateTime(2020),
+      firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
@@ -394,7 +394,7 @@ class _CategorySection extends ConsumerWidget {
 
 // ── Campo de data ─────────────────────────────────────────────────────────────
 
-class _DateField extends StatelessWidget {
+class _DateField extends StatefulWidget {
   const _DateField({
     required this.label,
     required this.date,
@@ -405,17 +405,44 @@ class _DateField extends StatelessWidget {
   final DateTime date;
   final VoidCallback onTap;
 
+  @override
+  State<_DateField> createState() => _DateFieldState();
+}
+
+class _DateFieldState extends State<_DateField> {
+  late final TextEditingController _controller;
+
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
   @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _fmt(widget.date));
+  }
+
+  @override
+  void didUpdateWidget(_DateField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.date != widget.date) {
+      _controller.text = _fmt(widget.date);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AppTextField(
-      label: label,
+      label: widget.label,
       prefixIcon: Icons.calendar_today_rounded,
-      controller: TextEditingController(text: _fmt(date)),
+      controller: _controller,
       readOnly: true,
-      onTap: onTap,
+      onTap: widget.onTap,
     );
   }
 }

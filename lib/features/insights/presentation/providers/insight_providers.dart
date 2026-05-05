@@ -115,9 +115,8 @@ Future<List<Insight>> currentMonthInsights(Ref ref) async {
   final expense = current?.expense ?? 0;
 
   // ── Categorias (para resolução de nomes nos insights de orçamento) ──────
-  final categories = ref
-      .watch(watchCategoriesProvider(null))
-      .maybeWhen(data: (l) => l, orElse: () => <Category>[]);
+  final categories =
+      await ref.watch(watchCategoriesProvider(null).future);
 
   // ── Insights de orçamento ────────────────────────────────────────────────
   final budgetProgress =
@@ -157,9 +156,8 @@ Future<List<Insight>> currentMonthInsights(Ref ref) async {
   }
 
   // ── Insights de metas ────────────────────────────────────────────────────
-  final goals = ref
-      .watch(watchGoalsProvider(GoalStatus.active))
-      .maybeWhen(data: (l) => l, orElse: () => <Goal>[]);
+  final goals =
+      await ref.watch(watchGoalsProvider(GoalStatus.active).future);
 
   for (final goal in goals) {
     if (goal.isCompleted) continue;
@@ -260,9 +258,8 @@ Future<List<Insight>> currentMonthInsights(Ref ref) async {
   }
 
   // ── Categoria principal ──────────────────────────────────────────────────
-  final transactions = ref
-      .watch(currentMonthTransactionsProvider)
-      .maybeWhen(data: (l) => l, orElse: () => <Transaction>[]);
+  final transactions =
+      await ref.watch(currentMonthTransactionsProvider.future);
 
   if (transactions.isNotEmpty && expense > 0) {
     final catTotals = <String, int>{};

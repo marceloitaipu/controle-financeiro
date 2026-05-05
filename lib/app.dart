@@ -1,6 +1,7 @@
 // lib/app.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,6 +23,24 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeNotifierProvider);
+
+    // Determina se está em dark mode de fato (considera system theme).
+    final platformBrightness =
+        MediaQuery.maybeOf(context)?.platformBrightness ?? Brightness.light;
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            platformBrightness == Brightness.dark);
+
+    // Ajusta brilho dos ícones da status bar e nav bar conforme o tema ativo.
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+    ));
 
     return MaterialApp.router(
       // ── Identidade ──────────────────────────────────────────────────────

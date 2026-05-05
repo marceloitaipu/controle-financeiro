@@ -111,7 +111,7 @@ final class TransactionModel {
         updatedAt: e.updatedAt,
       );
 
-  Map<String, dynamic> toFirestore() => {
+  Map<String, dynamic> toFirestore({bool isCreate = false}) => {
         'userId': userId,
         'type': type.name,
         'amount': amount,
@@ -130,8 +130,10 @@ final class TransactionModel {
         if (totalInstallments != null) 'totalInstallments': totalInstallments,
         if (notes != null) 'notes': notes,
         'attachmentUrls': attachmentUrls,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'createdAt': isCreate
+            ? FieldValue.serverTimestamp()
+            : Timestamp.fromDate(createdAt),
+        if (!isCreate) 'updatedAt': FieldValue.serverTimestamp(),
       };
 
   Transaction toEntity() => Transaction(

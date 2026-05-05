@@ -143,7 +143,7 @@ class BudgetNotifier extends _$BudgetNotifier {
         await ref.read(budgetRepositoryProvider).createBudget(budget);
     return result.fold(
       (failure) {
-        state = AsyncError(failure, StackTrace.current);
+        state = AsyncError(failure.message, StackTrace.current);
         return false;
       },
       (_) {
@@ -159,7 +159,7 @@ class BudgetNotifier extends _$BudgetNotifier {
         await ref.read(budgetRepositoryProvider).updateBudget(budget);
     return result.fold(
       (failure) {
-        state = AsyncError(failure, StackTrace.current);
+        state = AsyncError(failure.message, StackTrace.current);
         return false;
       },
       (_) {
@@ -175,7 +175,7 @@ class BudgetNotifier extends _$BudgetNotifier {
         await ref.read(budgetRepositoryProvider).deleteBudget(id);
     return result.fold(
       (failure) {
-        state = AsyncError(failure, StackTrace.current);
+        state = AsyncError(failure.message, StackTrace.current);
         return false;
       },
       (_) {

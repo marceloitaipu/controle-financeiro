@@ -573,6 +573,14 @@ class _ErrorState extends StatelessWidget {
                 color: Theme.of(context).colorScheme.error),
             AppSpacing.vMd,
             const Text('Erro ao carregar orçamentos.'),
+            AppSpacing.vSm,
+            Text(
+              message,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

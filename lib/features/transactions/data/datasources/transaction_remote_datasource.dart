@@ -132,7 +132,7 @@ final class TransactionRemoteDataSourceImpl
           : model;
 
       final batch = firestore.batch();
-      batch.set(ref, toSave.toFirestore());
+      batch.set(ref, toSave.toFirestore(isCreate: true));
 
       // Ajusta saldo da conta de forma atômica.
       // Compras no cartão de crédito têm accountId vazio — pula atualização.
@@ -176,7 +176,7 @@ final class TransactionRemoteDataSourceImpl
             ? TransactionModel.fromEntity(
                 model.toEntity().copyWith(id: ref.id))
             : model;
-        batch.set(ref, toSave.toFirestore());
+        batch.set(ref, toSave.toFirestore(isCreate: true));
         // accountId vazio = compra no cartão — sem atualização de saldo
         savedModels.add(toSave);
       }

@@ -88,6 +88,8 @@ service cloud.firestore {
             && hasField('amount')
             && hasField('type')
             && hasField('date')
+            // accountId pode ser '' (string vazia) para compras no cartão de crédito;
+            // hasField apenas garante que o campo existe e não é null.
             && hasField('accountId')
             && request.resource.data.amount is int
             && request.resource.data.amount > 0

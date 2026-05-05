@@ -9,6 +9,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../../shared/providers/firebase_providers.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../accounts/presentation/providers/account_providers.dart';
 import '../../../transactions/presentation/widgets/account_picker_sheet.dart';
 import '../../domain/entities/goal.dart';
 import '../providers/goal_providers.dart';
@@ -52,6 +53,7 @@ class _GoalFormPageState extends ConsumerState<GoalFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _targetController = TextEditingController();
+  late final TextEditingController _deadlineController;
 
   bool get _isEditMode => widget.goal != null;
 
@@ -75,12 +77,14 @@ class _GoalFormPageState extends ConsumerState<GoalFormPage> {
       _deadline = g.deadline;
       _linkedAccountId = g.linkedAccountId;
     }
+    _deadlineController = TextEditingController(text: _formatDate(_deadline));
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _targetController.dispose();
+    _deadlineController.dispose();
     super.dispose();
   }
 
@@ -154,7 +158,12 @@ class _GoalFormPageState extends ConsumerState<GoalFormPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => _deadline = picked);
+    if (picked != null) {
+      setState(() {
+        _deadline = picked;
+        _deadlineController.text = _formatDate(picked);
+      });
+    }
   }
 
   // ── Seletor de conta ───────────────────────────────────────────────────────
@@ -265,8 +274,7 @@ class _GoalFormPageState extends ConsumerState<GoalFormPage> {
             AppTextField(
               label: 'Prazo',
               prefixIcon: Icons.calendar_month_rounded,
-              controller:
-                  TextEditingController(text: _formatDate(_deadline)),
+              controller: _deadlineController,
               readOnly: true,
               onTap: _pickDeadline,
             ),
@@ -384,7 +392,7 @@ class _GoalFormPageState extends ConsumerState<GoalFormPage> {
 
 // ── Campo de conta vinculada ──────────────────────────────────────────────────
 
-class _LinkedAccountField extends StatelessWidget {
+class _LinkedAccountField extends ConsumerWidget {
   const _LinkedAccountField({
     required this.linkedAccountId,
     required this.onTap,
@@ -396,8 +404,19 @@ class _LinkedAccountField extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+
+    // Resolve o nome da conta vinculada a partir do stream de contas.
+    final accounts = ref.watch(watchAccountsProvider).valueOrNull ?? [];
+    final accountName = accounts
+        .where((a) => a.id == linkedAccountId)
+        .firstOrNull
+        ?.name;
+
+    final displayText = linkedAccountId != null
+        ? (accountName ?? 'Conta vinculada')
+        : 'Vincular conta (opcional)';
 
     return InkWell(
       onTap: onTap,
@@ -420,9 +439,7 @@ class _LinkedAccountField extends StatelessWidget {
             AppSpacing.hMd,
             Expanded(
               child: Text(
-                linkedAccountId != null
-                    ? 'Conta vinculada selecionada'
-                    : 'Vincular conta (opcional)',
+                displayText,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: linkedAccountId != null
                       ? theme.colorScheme.onSurface

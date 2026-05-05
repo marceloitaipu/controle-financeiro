@@ -85,7 +85,7 @@ class GoalNotifier extends _$GoalNotifier {
     final result = await ref.read(goalRepositoryProvider).createGoal(goal);
     return result.fold(
       (failure) {
-        state = AsyncError(failure, StackTrace.current);
+        state = AsyncError(failure.message, StackTrace.current);
         return false;
       },
       (_) {
@@ -100,7 +100,7 @@ class GoalNotifier extends _$GoalNotifier {
     final result = await ref.read(goalRepositoryProvider).updateGoal(goal);
     return result.fold(
       (failure) {
-        state = AsyncError(failure, StackTrace.current);
+        state = AsyncError(failure.message, StackTrace.current);
         return false;
       },
       (_) {
@@ -115,7 +115,7 @@ class GoalNotifier extends _$GoalNotifier {
     final result = await ref.read(goalRepositoryProvider).deleteGoal(id);
     return result.fold(
       (failure) {
-        state = AsyncError(failure, StackTrace.current);
+        state = AsyncError(failure.message, StackTrace.current);
         return false;
       },
       (_) {
@@ -132,7 +132,7 @@ class GoalNotifier extends _$GoalNotifier {
         await ref.read(goalRepositoryProvider).addProgress(goalId, amountCents);
     return result.fold(
       (failure) {
-        state = AsyncError(failure, StackTrace.current);
+        state = AsyncError(failure.message, StackTrace.current);
         return false;
       },
       (_) {

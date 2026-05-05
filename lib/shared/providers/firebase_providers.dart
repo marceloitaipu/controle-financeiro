@@ -9,15 +9,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'firebase_providers.g.dart';
 
 /// Provider da instância do [FirebaseAuth].
-@riverpod
+@Riverpod(keepAlive: true)
 FirebaseAuth firebaseAuth(Ref ref) => FirebaseAuth.instance;
 
 /// Provider da instância do [FirebaseFirestore].
-@riverpod
+@Riverpod(keepAlive: true)
 FirebaseFirestore firebaseFirestore(Ref ref) => FirebaseFirestore.instance;
 
 /// Provider da instância do [FirebaseStorage].
-@riverpod
+@Riverpod(keepAlive: true)
 FirebaseStorage firebaseStorage(Ref ref) => FirebaseStorage.instance;
 
 /// Provider do ID do usuário autenticado.
